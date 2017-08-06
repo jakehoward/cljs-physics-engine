@@ -1,3 +1,3 @@
 (ns cljs-physics-engine.core)
 
-(defn hello-physical-world [] "Hello, physical world!")
+(defn step-forward [environment connections particles] {:particles particles})
