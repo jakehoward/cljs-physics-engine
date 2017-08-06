@@ -110,6 +110,29 @@ lein doo node test # Defaults to watch mode
 lein doo node test once # If you just want to run once and exit (pretty slow for development, watcher is better for tight feedback loop)
 ```
 
+### Understanding the code
+
+```
+;; Notes on naming:
+;; A-bar means a vector of property A like a-bar -> {:x 67 :y 77 :z 101} would be an acceleration vector
+;; p is the particle
+;; component is the :x :y or :z of an A-bar (i.e. the component of the vector)
+
+;; Equations of motion
+;; s: scalar distance moved (displacement)
+;; a: acceleration
+;; v: final velocity
+;; u: initial velocity
+;; t: time interval
+
+;; a = (u - v) / t
+;; v = u + at
+;; s = 1/2(u + v)t
+;; s = ut + (1/2)at^2
+;; s = vt - (1/2)at^2
+;; v^2 = u^2 + 2as
+```
+
 #### Improvements
 
 - Run tests in editor
