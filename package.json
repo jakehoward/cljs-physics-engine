@@ -1,0 +1,14 @@
+{
+  "name": "",
+  "version": "",
+  "description": "",
+  "main": "",
+  "author": "Jake Howard <jake.howard.dev@gmail.com>",
+  "license": "",
+  "devDependencies": {
+    "electron": "^1.6.11",
+    "karma": "^1.7.0",
+    "karma-cljs-test": "^0.1.0",
+    "karma-electron-launcher": "^0.2.0"
+  }
+}
