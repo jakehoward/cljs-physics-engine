@@ -14,5 +14,12 @@
                         :main cljs-physics-engine.runner
                         :optimizations :none}}]}
 
-  :description "A physics engine to model n particles and simple forces between them.")
+  ;; Get the test output looking a bit more sane
+  :doo {:paths {:karma "karma --colors"}}
 
+  :user {:dependencies [[pjstadig/humane-test-output "0.8.2"]]
+         :injections [(require 'pjstadig.humane-test-output)
+                      (pjstadig.humane-test-output/activate!)]}
+  :profiles {:dev {:dependencies [[pjstadig/humane-test-output "0.8.2"]]}}
+
+  :description "A physics engine to model n particles and simple forces between them.")
