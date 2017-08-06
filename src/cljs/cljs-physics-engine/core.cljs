@@ -2,6 +2,31 @@
 
 (defn- square [n] (* n n))
 
+(defn- map-values
+  ([f d1 d2]
+   (map (fn [[d1-k d1-v] [d2-k d2-v]] (f d1-v d2-v)) d1 d2))
+  ([f d]
+   (map (fn [[k v]] (f v)) d)))
+
+(defn- reduce-vectors [f spatial-vectors]
+  (reduce (fn [total item] (zipmap (keys total) (map-values f total item))) spatial-vectors))
+
+(defn- map-vector [f spatial-vector]
+  (zipmap (keys spatial-vector) (map-values f spatial-vector)))
+
+(defn- add-vectors [spatial-vectors]
+  (reduce-vectors + spatial-vectors))
+
+(defn- vector-difference [a b]
+  (reduce-vectors - [a b]))
+
+(defn- vector-magnitude [r]
+  (.sqrt js/Math (+ (square (:z r)) (square (:z r)) (square (:z r)))))
+
+(defn- unit-vector [r]
+  (let [magnitude (vector-magnitude r)]
+    (map-vector #(/ % magnitude) r)))
+
 (defn- force-gravity [g m-1 m-2 r]
   (/ (* g m-1 m-2)
      (square r)))
@@ -18,8 +43,21 @@
 (defn- update-pos [component displacement p]
   (assoc p component (+ (component p) displacement)))
 
-(defn- calc-gravity [env p]
+(defn- calc-gravity-from-env [env p]
   {:x 0 :y (* -1 (force-gravity (:G env) (:M env) (:m p) (+ (:y p) (:r env)))) :z 0})
+
+(defn- gravitational-f-between-particles [g p-a p-b]
+  (let [r (vector-difference (select-keys p-b [:x :y :z]) (select-keys p-a [:x :y :z]))
+        mag-r (vector-magnitude r)
+        unit-vector-r (unit-vector r)
+        f-gravity (force-gravity g (:m p-a) (:m p-b) mag-r)]
+    (map-vector #(* % f-gravity) unit-vector-r)))
+
+;; Optimisation of 2x if we don't calculate the same force twice for each particle
+(defn- calc-inter-particle-gravity [env p other-ps]
+  (if (= 0 (count other-ps))
+    {:x 0 :y 0 :z 0}
+    (add-vectors (map (partial gravitational-f-between-particles (:G env) p) other-ps))))
 
 (defn- calc-acceleration [f-bar p]
   (let [mass (:m p)]
@@ -31,8 +69,9 @@
 (defn- calc-final-velocity [a-bar t p]
   (into {} (map (fn [[component a-c]] [component (v (get-in p [:v component]) t a-c)]) a-bar)))
 
-(defn- update-particle [env t p]
-  (let [f-bar (calc-gravity env p)
+(defn- update-particle [env t ps p]
+  (let [other-ps (filter #(not (= (:id %) (:id p))) ps)
+        f-bar (add-vectors [(calc-gravity-from-env env p) (calc-inter-particle-gravity env p other-ps)])
         a-bar (calc-acceleration f-bar p)
         s-bar (calc-displacement a-bar t p)
         v-bar (calc-final-velocity a-bar t p)]
@@ -45,12 +84,13 @@
        (update-v :z (:z v-bar)))))
 
 (defn- validate [env ps]
-  (cond (= (:r env) 0) {:error "Must not have env with zero radius, r, use nil instead" :valid false}
-        (not (every? #(> (:m %) 0) ps)) {:error "Particles must have non-zero mass" :valid false}
-        :else {:valid true}))
+  (cond (not (> (:r env) 0)) "Must not have env with zero radius, r"
+        (not (every? #(> (:m %) 0) ps)) "Particles must have non-zero mass, m"
+        (not (= (count ps) (count (into #{} (map :id ps))))) "All particles must have unique :id keys"
+        :else nil))
 
 (defn step-forward [env connections t ps]
-  (let [error (:error (validate env ps))]
+  (let [error (validate env ps)]
     (if (not (nil? error))
-      error
-      {:particles (map (partial update-particle env t) ps)})))
+      {:error error}
+      {:particles (map (partial update-particle env t ps) ps)})))

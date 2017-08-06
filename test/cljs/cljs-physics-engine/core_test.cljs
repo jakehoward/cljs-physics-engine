@@ -31,11 +31,11 @@
 
     (testing "Newton's first law: Particles with velocity move the requisite amount"
       (let [particles [{:id 1 :m 100 :q 1 :x 10 :y 10 :z 10 :v {:x 1 :y 1 :z 1}}
-                       {:id 1 :m 100 :q 1 :x 12 :y 12 :z 12 :v {:x 2 :y 2 :z 2}}]
-            time-step 0.5 ;; second
+                       {:id 2 :m 100 :q 1 :x 12 :y 12 :z 12 :v {:x 2 :y 2 :z 2}}]
+            time-step 0.5
             actual (:particles (p/step-forward environment connections time-step particles))
             expected [{:id 1 :m 100 :q 1 :x 10.5 :y 10.5 :z 10.5 :v {:x 1 :y 1 :z 1}}
-                      {:id 1 :m 100 :q 1 :x 13 :y 13 :z 13 :v {:x 2 :y 2 :z 2}}]]
+                      {:id 2 :m 100 :q 1 :x 13 :y 13 :z 13 :v {:x 2 :y 2 :z 2}}]]
         (is (= expected actual))))))
 
 (deftest physics-engine-environmental-gravity
@@ -49,14 +49,44 @@
             expected {:id 1 :m 1 :q 0 :x 0 :y 30 :z 0 :v {:x 0 :y -210 :z 0}}]
         (is (= expected actual)))))
 
+(deftest physics-engine-inter-particle-gravity
+    (testing "In a simple binary system, the particles are gravitationally attracted to each other"
+      (let [environment {:G 10 :k-e 0 :size {:x 1000 :y 1000 :z 1000} :M 0 :r 1} ;; No planetary gravity
+            time-step 2 ;; ensure it's being used by not being equal to 1
+            connections []
+            particles [{:id 1 :m 5 :q 0 :x 0 :y 0 :z 0 :v {:x 0 :y 0 :z 0}}
+                       {:id 2 :m 20 :q 0 :x 10 :y 10 :z 10 :v {:x 0 :y 0 :z 0}}]
+            actual (:particles (p/step-forward environment connections time-step particles))
+            expected [{:id 1 :m 5 :q 0 :x 0.7698003589195008 :y 0.7698003589195008 :z 0.7698003589195008 :v {:x 0.7698003589195008 :y 0.7698003589195008 :z 0.7698003589195008}}
+                      {:id 2 :m 20 :q 0 :x (- 10 0.1924500897298752) :y (- 10 0.1924500897298752) :z (- 10 0.1924500897298752) :v {:x -0.1924500897298752 :y -0.1924500897298752 :z -0.1924500897298752}}]]
+        (is (= expected actual)))))
+
 (deftest physics-engine-constraints
   (testing "Particles with no mass are not allowed"
     (let [environment {:G 0 :k-e 0 :size {:x 1000 :y 1000 :z 1000} :M 100 :r 10}
           time-step 1
           connections []
           particles [{:id 1 :m 0 :q 0 :x 0 :y 250 :z 0 :v {:x 0 :y -10 :z 0}}
-                     {:id 1 :m 10 :q 0 :x 0 :y 250 :z 0 :v {:x 0 :y -10 :z 0}}
+                     {:id 2 :m 10 :q 0 :x 0 :y 250 :z 0 :v {:x 0 :y -10 :z 0}}
+                     {:id 3 :m 5 :q 0 :x 0 :y 250 :z 0 :v {:x 0 :y -10 :z 0}}]
+          actual (:error (p/step-forward environment connections time-step particles))
+          expected "Particles must have non-zero mass, m"]
+      (is (= expected actual))))
+  (testing "Planets with no size are not allowed"
+    (let [environment {:G 0 :k-e 0 :size {:x 1000 :y 1000 :z 1000} :M 100 :r 0}
+          particles [{:id 1 :m 100 :q 1 :x 12 :y 12 :z 12 :v {:x 2 :y 2 :z 2}}]
+          connections []
+          time-step 0.5
+          actual (:error (p/step-forward environment connections time-step particles))
+          expected "Must not have env with zero radius, r"]
+        (is (= expected actual))))
+  (testing "Particles must have unique id's"
+    (let [environment {:G 0 :k-e 0 :size {:x 1000 :y 1000 :z 1000} :M 100 :r 1}
+          particles [{:id 1 :m 8 :q 0 :x 0 :y 250 :z 0 :v {:x 0 :y -10 :z 0}}
+                     {:id 2 :m 10 :q 0 :x 0 :y 250 :z 0 :v {:x 0 :y -10 :z 0}}
                      {:id 1 :m 5 :q 0 :x 0 :y 250 :z 0 :v {:x 0 :y -10 :z 0}}]
-          actual (p/step-forward environment connections time-step particles)
-          expected "Particles must have non-zero mass"]
-      (is (= expected actual)))))
+          connections []
+          time-step 0.5
+          actual (:error (p/step-forward environment connections time-step particles))
+          expected "All particles must have unique :id keys"]
+        (is (= expected actual)))))
