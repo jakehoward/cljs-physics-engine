@@ -38,33 +38,31 @@
   {:x 0 :y (* -1 (force-gravity (:G env) (:M env) (:m particle) (+ (:y particle) (:r env)))) :z 0})
 
 (defn- calc-acceleration [f particle]
-  (let [m (:m particle)]
-    (into {} (map #(vector (first %) (/ (second %) m)) f)))) ;; F = ma TODO: if mass of particle is zero, divByZero error
+  (let [mass (:m particle)]
+    ;; F = ma TODO: if mass of particle is zero, divByZero error
+    (letfn [(a-with-component [[component force]] [component (/ force mass)])]
+      (into {} (map a-with-component f)))))
 
 (defn- calc-displacement [a t particle]
-  (let [s-x (s (get-in particle [:v :x]) t (:x a)) ;; TODO make this generic over componenet
-        s-y (s (get-in particle [:v :y]) t (:y a))
-        s-z (s (get-in particle [:v :z]) t (:z a))]
-    {:x s-x :y s-y :z s-z}))
+  (letfn [(s-with-component [[component a]] [component (s (get-in particle [:v component]) t a)])]
+    (into {} (map s-with-component a))))
 
 (defn- calc-final-velocity [a t particle]
-  (let [v-x (v (get-in particle [:v :x]) t (:x a)) ;; TODO make this generic over componenet - same as ^^ map-vector? (as in spatial vector)
-        v-y (v (get-in particle [:v :y]) t (:y a))
-        v-z (v (get-in particle [:v :z]) t (:z a))]
-    {:x v-x :y v-y :z v-z}))
+  (letfn [(v-with-component [[component a]] [component (v (get-in particle [:v component]) t a)])]
+    (into {} (map v-with-component a))))
 
 (defn- update-particle [env t particle]
-  (let [f-gravity (calc-gravity env particle)
-        a (calc-acceleration f-gravity particle)
-        s (calc-displacement a t particle)
-        v (calc-final-velocity a t particle)]
+  (let [f-bar (calc-gravity env particle)
+        a-bar (calc-acceleration f-bar particle)
+        s-bar (calc-displacement a-bar t particle)
+        v-bar (calc-final-velocity a-bar t particle)]
   (->> particle
-       (update-pos :x (:x s))
-       (update-pos :y (:y s))
-       (update-pos :z (:z s))
-       (update-v :x (:x v))
-       (update-v :y (:y v))
-       (update-v :z (:z v)))))
+       (update-pos :x (:x s-bar))
+       (update-pos :y (:y s-bar))
+       (update-pos :z (:z s-bar))
+       (update-v :x (:x v-bar))
+       (update-v :y (:y v-bar))
+       (update-v :z (:z v-bar)))))
 
 (defn- validate-env [env]
   (cond (= (:r env) 0) {:error "Must not have env with zero radius, r, use nil instead" :valid false}

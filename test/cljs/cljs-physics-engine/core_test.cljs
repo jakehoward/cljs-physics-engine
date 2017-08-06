@@ -15,27 +15,31 @@
 ;; - Should it add defaults if some args aren't provided ? (e.g. user can provide 2-d world, will work with same code)
 
 (let [environment {:G 0 :k-e 0 :size {:x 100 :y 100 :z 100} :M 10000 :r 100}
-        connections []
-        time-step 1
-        particles []
-        velocity {:x 0 :y 0 :z 0}]
+      connections []
+      time-step 1
+      particles []
+      velocity {:x 0 :y 0 :z 0}]
   (deftest physics-engine-no-forces
     (testing "In a world with no forces, nothing moves"
       (let [connections [{:from 1 :to 2 :k 0 :l 1}]
-            particles [{:id 1 :m 100 :q 1 :x 10 :y 10 :z 10 :v velocity} {:id 2 :m 50 :q -3 :x 5 :y 5 :z 5 :v velocity}]
+            particles [{:id 1 :m 100 :q 1 :x 10 :y 10 :z 10 :v velocity}
+                       {:id 2 :m 50 :q -3 :x 5 :y 5 :z 5 :v velocity}]
             actual (:particles (p/step-forward environment connections time-step particles))]
         (is (= particles actual))))
 
     (testing "Newton's first law: Particles with velocity move the requisite amount"
-      (let [particles [{:id 1 :m 100 :q 1 :x 10 :y 10 :z 10 :v {:x 1 :y 1 :z 1}} {:id 1 :m 100 :q 1 :x 12 :y 12 :z 12 :v {:x 2 :y 2 :z 2}}]
+      (let [particles [{:id 1 :m 100 :q 1 :x 10 :y 10 :z 10 :v {:x 1 :y 1 :z 1}}
+                       {:id 1 :m 100 :q 1 :x 12 :y 12 :z 12 :v {:x 2 :y 2 :z 2}}]
             time-step 0.5 ;; second
             actual (:particles (p/step-forward environment connections time-step particles))
-            expected [{:id 1 :m 100 :q 1 :x 10.5 :y 10.5 :z 10.5 :v {:x 1 :y 1 :z 1}} {:id 1 :m 100 :q 1 :x 13 :y 13 :z 13 :v {:x 2 :y 2 :z 2}}]]
+            expected [{:id 1 :m 100 :q 1 :x 10.5 :y 10.5 :z 10.5 :v {:x 1 :y 1 :z 1}}
+                      {:id 1 :m 100 :q 1 :x 13 :y 13 :z 13 :v {:x 2 :y 2 :z 2}}]]
         (is (= expected actual)))))
 
   (deftest physics-engine-environmental-gravity
     (testing "The environment's gravity moves a particle with mass"
-      (let [environment {:G (* 260 260) :k-e 0 :size {:x 1000 :y 1000 :z 1000} :M 100 :r 10} ;; G/r^2 cancels out (taking y into consideration) , particle :m 1 => F = 100 N
+      ;; G/r^2 cancels out (taking y into consideration) , particle :m 1 => F = 100 N
+      (let [environment {:G (* 260 260) :k-e 0 :size {:x 1000 :y 1000 :z 1000} :M 100 :r 10}
             time-step 2 ;; ensure it's being used
             particles [{:id 1 :m 1 :q 0 :x 0 :y 250 :z 0 :v {:x 0 :y -10 :z 0}}]
             actual (first (:particles (p/step-forward environment connections time-step particles)))
