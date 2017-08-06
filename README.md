@@ -49,6 +49,7 @@ An extremely basic environment described only in terms of gravity and forces owi
     :k-e 8.99e9                  ;; (N * (m/C)^2) Coulomb's constant
     :size {:x 100 :y 100 :z 100} ;; (m) The size of the universe, particles aren't allowed to live outside this box, they hit an invisible, immovable wall if they try.
     :M 5.9722e24                 ;; (kg) The mass of the "planet", used to define a downward force applied to all particles
+    :r 6.370e6                   ;; (m) The radius of the "planet", used to define a downward force applied to all particles
 }
 ```
 
