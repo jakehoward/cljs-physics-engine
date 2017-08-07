@@ -109,8 +109,8 @@
         (not (= (count ps) (count (into #{} (map :id ps))))) "All particles must have unique :id keys"
         :else nil))
 
-(defn step-forward [env connections t ps]
-  (let [error (validate env ps)]
+(defn step-forward [env connections time-step particles]
+  (let [error (validate env particles)]
     (if (not (nil? error))
       {:error error}
-      {:particles (into [] (map (partial update-particle env t ps) ps))})))
+      {:particles (into [] (map (partial update-particle env time-step particles) particles))})))
