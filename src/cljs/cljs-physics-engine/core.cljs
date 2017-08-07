@@ -2,6 +2,8 @@
 
 (defn- square [n] (* n n))
 
+(defn- neg [a] (* -1 a))
+
 (defn- map-values
   ([f d1 d2]
    (map (fn [[d1-k d1-v] [d2-k d2-v]] (f d1-v d2-v)) d1 d2))
@@ -31,9 +33,9 @@
   (/ (* g m-1 m-2)
      (square r)))
 
-(defn- force-electrostatic [k-e m-1 m-2 r]
-  (/ (* k-e m-1 m-2)
-     (square r)))
+(defn- force-electrostatic [k-e q-1 q-2 r]
+  (neg (/ (* k-e q-1 q-2)
+          (square r))))
 
 (defn- v [u t a]
   (+ u (* a t)))
@@ -50,19 +52,18 @@
 (defn- calc-gravity-from-env [env p]
   {:x 0 :y (* -1 (force-gravity (:G env) (:M env) (:m p) (+ (:y p) (:r env)))) :z 0})
 
-(defn- gravitational-f-between-particles [g p-a p-b]
-  (let [r (vector-difference (select-keys p-b [:x :y :z]) (select-keys p-a [:x :y :z])) ;; Is this the right way around?
+(defn- deconstruct-force-into-components [force-fn p-a p-b]
+  (let [r (vector-difference (select-keys p-b [:x :y :z]) (select-keys p-a [:x :y :z]))
         mag-r (vector-magnitude r)
         unit-vector-r (unit-vector r)
-        f-gravity (force-gravity g (:m p-a) (:m p-b) mag-r)]
-    (map-vector #(* % f-gravity) unit-vector-r)))
+        force (force-fn mag-r)]
+    (map-vector #(* % force) unit-vector-r)))
+
+(defn- gravitational-f-between-particles [g p-a p-b]
+  (deconstruct-force-into-components (partial force-gravity g (:m p-a) (:m p-b)) p-a p-b))
 
 (defn- electrostatic-f-between-particles [k-e p-a p-b]
-  (let [r (vector-difference (select-keys p-a [:x :y :z]) (select-keys p-b [:x :y :z]))
-        mag-r (vector-magnitude r)
-        unit-vector-r (unit-vector r)
-        f-electrostatic (force-electrostatic k-e (:q p-a) (:q p-b) mag-r)]
-    (map-vector #(* % f-electrostatic) unit-vector-r)))
+  (deconstruct-force-into-components (partial force-electrostatic k-e (:q p-a) (:q p-b)) p-a p-b))
 
 ;; Optimisation of 2x if we don't calculate the same force twice for each particle
 (defn- calc-inter-particle-gravity [env p other-ps]
