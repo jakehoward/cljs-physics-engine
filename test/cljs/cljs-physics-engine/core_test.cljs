@@ -39,27 +39,61 @@
         (is (= expected actual))))))
 
 (deftest physics-engine-environmental-gravity
-    (testing "The environment's gravity moves a particle with mass"
-      ;; G/r^2 cancels out (taking y into consideration) , particle :m 1 => F = 100 N
-      (let [environment {:G (* 260 260) :k-e 0 :size {:x 1000 :y 1000 :z 1000} :M 100 :r 10}
-            time-step 2 ;; ensure it's being used by not being equal to 1
-            connections []
-            particles [{:id 1 :m 1 :q 0 :x 0 :y 250 :z 0 :v {:x 0 :y -10 :z 0}}]
-            actual (first (:particles (p/step-forward environment connections time-step particles)))
-            expected {:id 1 :m 1 :q 0 :x 0 :y 30 :z 0 :v {:x 0 :y -210 :z 0}}]
-        (is (= expected actual)))))
+  (testing "The environment's gravity moves a particle with mass"
+    ;; G/r^2 cancels out (taking y into consideration) , particle :m 1 => F = 100 N
+    (let [environment {:G (* 260 260) :k-e 0 :size {:x 1000 :y 1000 :z 1000} :M 100 :r 10}
+          time-step 2 ;; ensure it's being used by not being equal to 1
+          connections []
+          particles [{:id 1 :m 1 :q 0 :x 0 :y 250 :z 0 :v {:x 0 :y -10 :z 0}}]
+          actual (first (:particles (p/step-forward environment connections time-step particles)))
+          expected {:id 1 :m 1 :q 0 :x 0 :y 30 :z 0 :v {:x 0 :y -210 :z 0}}]
+      (is (= expected actual)))))
 
 (deftest physics-engine-inter-particle-gravity
-    (testing "In a simple binary system, the particles are gravitationally attracted to each other"
-      (let [environment {:G 10 :k-e 0 :size {:x 1000 :y 1000 :z 1000} :M 0 :r 1} ;; No planetary gravity
-            time-step 2 ;; ensure it's being used by not being equal to 1
-            connections []
-            particles [{:id 1 :m 5 :q 0 :x 0 :y 0 :z 0 :v {:x 0 :y 0 :z 0}}
-                       {:id 2 :m 20 :q 0 :x 10 :y 10 :z 10 :v {:x 0 :y 0 :z 0}}]
-            actual (:particles (p/step-forward environment connections time-step particles))
-            expected [{:id 1 :m 5 :q 0 :x 0.7698003589195008 :y 0.7698003589195008 :z 0.7698003589195008 :v {:x 0.7698003589195008 :y 0.7698003589195008 :z 0.7698003589195008}}
-                      {:id 2 :m 20 :q 0 :x (- 10 0.1924500897298752) :y (- 10 0.1924500897298752) :z (- 10 0.1924500897298752) :v {:x -0.1924500897298752 :y -0.1924500897298752 :z -0.1924500897298752}}]]
-        (is (= expected actual)))))
+  (testing "In a simple binary system, the particles are gravitationally attracted to each other"
+    (let [environment {:G 10 :k-e 0 :size {:x 1000 :y 1000 :z 1000} :M 0 :r 1} ;; No planetary gravity
+          time-step 2 ;; ensure it's being used by not being equal to 1
+          connections []
+          particles [{:id 1 :m 5 :q 0 :x 0 :y 0 :z 0 :v {:x 0 :y 0 :z 0}}
+                     {:id 2 :m 20 :q 0 :x 10 :y 10 :z 10 :v {:x 0 :y 0 :z 0}}]
+          actual (:particles (p/step-forward environment connections time-step particles))
+          expected [{:id 1 :m 5 :q 0 :x 0.7698003589195008 :y 0.7698003589195008 :z 0.7698003589195008 :v {:x 0.7698003589195008 :y 0.7698003589195008 :z 0.7698003589195008}}
+                    {:id 2 :m 20 :q 0 :x (- 10 0.1924500897298752) :y (- 10 0.1924500897298752) :z (- 10 0.1924500897298752) :v {:x -0.1924500897298752 :y -0.1924500897298752 :z -0.1924500897298752}}]]
+      (is (= expected actual)))))
+
+(deftest physics-engine-inter-particle-charge
+  (testing "In a simple binary system, the particles which are both positively charged are electrostatically repelled by each other"
+    (let [environment {:G 0 :k-e 10 :size {:x 1000 :y 1000 :z 1000} :M 0 :r 1} ;; No planetary gravity
+          time-step 2 ;; ensure it's being used by not being equal to 1
+          connections []
+          particles [{:id 1 :m 5 :q 5 :x 1 :y 1 :z 1 :v {:x 0 :y 0 :z 0}}
+                     {:id 2 :m 20 :q 20 :x 11 :y 11 :z 11 :v {:x 0 :y 0 :z 0}}]
+          actual (:particles (p/step-forward environment connections time-step particles))
+          expected [{:id 1 :m 5 :q 5 :x (- 1.0 0.7698003589195008) :y (- 1.0 0.7698003589195008) :z (- 1.0 0.7698003589195008) :v {:x -0.7698003589195008 :y -0.7698003589195008 :z -0.7698003589195008}}
+                    {:id 2 :m 20 :q 20 :x (+ 11 0.1924500897298752) :y (+ 11 0.1924500897298752) :z (+ 11 0.1924500897298752) :v {:x 0.1924500897298752 :y 0.1924500897298752 :z 0.1924500897298752}}]]
+      (is (= expected actual))))
+
+  (testing "In a simple binary system, the particles which are both negatively charged are electrostatically repelled by each other"
+    (let [environment {:G 0 :k-e 10 :size {:x 1000 :y 1000 :z 1000} :M 0 :r 1} ;; No planetary gravity
+          time-step 2 ;; ensure it's being used by not being equal to 1
+          connections []
+          particles [{:id 1 :m 5 :q -5 :x 1 :y 1 :z 1 :v {:x 0 :y 0 :z 0}}
+                     {:id 2 :m 20 :q -20 :x 11 :y 11 :z 11 :v {:x 0 :y 0 :z 0}}]
+          actual (:particles (p/step-forward environment connections time-step particles))
+          expected [{:id 1 :m 5 :q -5 :x (- 1.0 0.7698003589195008) :y (- 1.0 0.7698003589195008) :z (- 1.0 0.7698003589195008) :v {:x -0.7698003589195008 :y -0.7698003589195008 :z -0.7698003589195008}}
+                    {:id 2 :m 20 :q -20 :x (+ 11 0.1924500897298752) :y (+ 11 0.1924500897298752) :z (+ 11 0.1924500897298752) :v {:x 0.1924500897298752 :y 0.1924500897298752 :z 0.1924500897298752}}]]
+      (is (= expected actual))))
+
+  (testing "In a simple binary system, the particles of opposite charge are electrostatically attracted to each other"
+    (let [environment {:G 0 :k-e 10 :size {:x 1000 :y 1000 :z 1000} :M 0 :r 1} ;; No planetary gravity
+          time-step 2 ;; ensure it's being used by not being equal to 1
+          connections []
+          particles [{:id 1 :m 5 :q 5 :x 0 :y 0 :z 0 :v {:x 0 :y 0 :z 0}}
+                     {:id 2 :m 20 :q -20 :x 10 :y 10 :z 10 :v {:x 0 :y 0 :z 0}}]
+          actual (:particles (p/step-forward environment connections time-step particles))
+          expected [{:id 1 :m 5 :q 5 :x 0.7698003589195008 :y 0.7698003589195008 :z 0.7698003589195008 :v {:x 0.7698003589195008 :y 0.7698003589195008 :z 0.7698003589195008}}
+                    {:id 2 :m 20 :q -20 :x (- 10 0.1924500897298752) :y (- 10 0.1924500897298752) :z (- 10 0.1924500897298752) :v {:x -0.1924500897298752 :y -0.1924500897298752 :z -0.1924500897298752}}]]
+      (is (= expected actual)))))
 
 (deftest physics-engine-constraints
   (testing "Particles with no mass are not allowed"
@@ -79,7 +113,7 @@
           time-step 0.5
           actual (:error (p/step-forward environment connections time-step particles))
           expected "Must not have env with zero radius, r"]
-        (is (= expected actual))))
+      (is (= expected actual))))
   (testing "Particles must have unique id's"
     (let [environment {:G 0 :k-e 0 :size {:x 1000 :y 1000 :z 1000} :M 100 :r 1}
           particles [{:id 1 :m 8 :q 0 :x 0 :y 250 :z 0 :v {:x 0 :y -10 :z 0}}
@@ -89,4 +123,4 @@
           time-step 0.5
           actual (:error (p/step-forward environment connections time-step particles))
           expected "All particles must have unique :id keys"]
-        (is (= expected actual)))))
+      (is (= expected actual)))))

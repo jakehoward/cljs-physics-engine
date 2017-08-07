@@ -31,6 +31,10 @@
   (/ (* g m-1 m-2)
      (square r)))
 
+(defn- force-electrostatic [k-e m-1 m-2 r]
+  (/ (* k-e m-1 m-2)
+     (square r)))
+
 (defn- v [u t a]
   (+ u (* a t)))
 
@@ -47,17 +51,29 @@
   {:x 0 :y (* -1 (force-gravity (:G env) (:M env) (:m p) (+ (:y p) (:r env)))) :z 0})
 
 (defn- gravitational-f-between-particles [g p-a p-b]
-  (let [r (vector-difference (select-keys p-b [:x :y :z]) (select-keys p-a [:x :y :z]))
+  (let [r (vector-difference (select-keys p-b [:x :y :z]) (select-keys p-a [:x :y :z])) ;; Is this the right way around?
         mag-r (vector-magnitude r)
         unit-vector-r (unit-vector r)
         f-gravity (force-gravity g (:m p-a) (:m p-b) mag-r)]
     (map-vector #(* % f-gravity) unit-vector-r)))
+
+(defn- electrostatic-f-between-particles [k-e p-a p-b]
+  (let [r (vector-difference (select-keys p-a [:x :y :z]) (select-keys p-b [:x :y :z]))
+        mag-r (vector-magnitude r)
+        unit-vector-r (unit-vector r)
+        f-electrostatic (force-electrostatic k-e (:q p-a) (:q p-b) mag-r)]
+    (map-vector #(* % f-electrostatic) unit-vector-r)))
 
 ;; Optimisation of 2x if we don't calculate the same force twice for each particle
 (defn- calc-inter-particle-gravity [env p other-ps]
   (if (= 0 (count other-ps))
     {:x 0 :y 0 :z 0}
     (add-vectors (map (partial gravitational-f-between-particles (:G env) p) other-ps))))
+
+(defn- calc-inter-particle-electrostatic [env p other-ps]
+  (if (= 0 (count other-ps))
+    {:x 0 :y 0 :z 0}
+    (add-vectors (map (partial electrostatic-f-between-particles (:k-e env) p) other-ps))))
 
 (defn- calc-acceleration [f-bar p]
   (let [mass (:m p)]
@@ -69,9 +85,12 @@
 (defn- calc-final-velocity [a-bar t p]
   (into {} (map (fn [[component a-c]] [component (v (get-in p [:v component]) t a-c)]) a-bar)))
 
+
 (defn- update-particle [env t ps p]
   (let [other-ps (filter #(not (= (:id %) (:id p))) ps)
-        f-bar (add-vectors [(calc-gravity-from-env env p) (calc-inter-particle-gravity env p other-ps)])
+        f-bar (add-vectors [(calc-gravity-from-env env p)
+                            (calc-inter-particle-gravity env p other-ps)
+                            (calc-inter-particle-electrostatic env p other-ps)])
         a-bar (calc-acceleration f-bar p)
         s-bar (calc-displacement a-bar t p)
         v-bar (calc-final-velocity a-bar t p)]
@@ -93,4 +112,4 @@
   (let [error (validate env ps)]
     (if (not (nil? error))
       {:error error}
-      {:particles (map (partial update-particle env t ps) ps)})))
+      {:particles (into [] (map (partial update-particle env t ps) ps))})))
