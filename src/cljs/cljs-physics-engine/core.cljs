@@ -23,7 +23,7 @@
   (reduce-vectors - [a b]))
 
 (defn- vector-magnitude [r]
-  (.sqrt js/Math (+ (square (:z r)) (square (:z r)) (square (:z r)))))
+  (.sqrt js/Math (+ (square (:x r)) (square (:y r)) (square (:z r)))))
 
 (defn- unit-vector [r]
   (let [magnitude (vector-magnitude r)]

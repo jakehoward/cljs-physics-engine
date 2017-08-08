@@ -14,6 +14,8 @@
 ;; - make optimisations over a certain number of particles (nearest neighbours have the biggest effect)
 ;; - Should it add defaults if some args aren't provided ? (e.g. user can provide 2-d world, will work with same code)
 ;; - could you end up with a 0 from rounding error?
+;; - system should work in all of the one/two dimension combinations
+
 
 (deftest physics-engine-no-forces
   (let [environment {:G 0 :k-e 0 :size {:x 100 :y 100 :z 100} :M 10000 :r 100}
@@ -123,4 +125,18 @@
           time-step 0.5
           actual (:error (p/step-forward environment connections time-step particles))
           expected "All particles must have unique :id keys"]
+      (is (= expected actual)))))
+
+(deftest physics-engine-bugs
+  (testing "Simple binary system works when the z component of the position is 0"
+    (let [environment {:G 10 :k-e 0 :size {:x 1000 :y 1000 :z 1000} :M 0 :r 1}
+          time-step 2
+          connections []
+          particles [{:id 1 :m 500 :q 0 :x 250 :y 500 :z 0 :v {:x 0 :y 0 :z 0}}
+                      {:id 2 :m 20 :q 0 :x 10 :y 10 :z 0 :v {:x 0 :y 0 :z 0}}]
+          actual (:particles (p/step-forward environment connections time-step particles))
+          expected [{:id 1, :m 500, :q 0, :x 249.99940897890653, :y 499.99879333193417, :z 0,
+                     :v {:x -0.0005910210934633033, :y -0.001206668065820911, :z 0}}
+                    {:id 2, :m 20, :q 0, :x 10.014775527336582, :y 10.030166701645523, :z 0,
+                     :v {:x 0.014775527336582583, :y 0.030166701645522775, :z 0}}]]
       (is (= expected actual)))))
