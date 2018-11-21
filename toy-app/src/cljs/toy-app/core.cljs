@@ -7,7 +7,6 @@
 
 
 (defn- build-circle-element [node]
-  ;; (.log js/console (str node))
   (d/circle {:cx (str (:x node))
              :cy (str (:y node))
              :r "50"

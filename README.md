@@ -84,6 +84,29 @@ A particle where the following simplifications have been made:
 }
 ```
 
+## Toy App
+
+Running the toy application allows you to visualise the physics engine. It requires [leiningen](https://leiningen.org/) to be installed on your machine:
+
+```
+cd toy-app
+lein figwheel
+```
+
+You will see the port on which the figwheel server is running:
+
+```
+Figwheel: Cutting some fruit, just a sec ...
+Figwheel: Validating the configuration found in project.clj
+Figwheel: Configuration Valid ;)
+Figwheel: Starting server at http://0.0.0.0:3449  # <=== here
+Figwheel: Watching build - dev
+Figwheel: Cleaning build - dev
+...
+```
+
+visit the server link in a browser.
+
 ## Development
 
 ### Required programs
